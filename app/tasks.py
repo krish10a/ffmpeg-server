@@ -49,6 +49,10 @@ async def process_ffmpeg_job(job_id: str, request: FFmpegRequest, base_url: str)
             final_output_map[alias] = filename
 
         # 3. Execute FFmpeg
+        # Optimized for stability (low RAM/CPU) to prevent Server OOM crashes
+        # Added: -preset ultrafast -threads 2
+        cmd = cmd.replace("-c:v libx264", "-c:v libx264 -preset ultrafast -threads 2")
+        
         args = shlex.split(cmd)
         
         logger.info(f"Job {job_id}: Running command: {cmd}")
