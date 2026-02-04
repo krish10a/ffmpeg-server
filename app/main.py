@@ -25,6 +25,9 @@ async def run_ffmpeg(request: FFmpegRequest, background_tasks: BackgroundTasks, 
     # Construct base URL for download links
     base_url = str(req.base_url).rstrip("/")
     
+    # Initialize job in store synchronously to avoid race conditions
+    JOB_STORE[job_id] = {"status": "pending"}
+    
     # Start background task
     background_tasks.add_task(process_ffmpeg_job, job_id, request, base_url)
     
