@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: ffmpeg-server
+    env: docker
+    plan: free
+    branch: main
+    repo: https://github.com/render-examples/flask-hello-world # Placeholder, will be replaced by user's repo
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 8000
