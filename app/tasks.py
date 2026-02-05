@@ -20,7 +20,7 @@ async def process_ffmpeg_job(job_id: str, request: FFmpegRequest, base_url: str)
     try:
         # 1. Download input files
         input_paths = {}
-        download_tasks = []
+        # download_tasks = [] (Removed for sequential)
         for alias, url in request.input_files.items():
             filename = f"{alias}_{os.path.basename(url.split('?')[0])}"
             if not filename.endswith(('.mp4', '.mov', '.avi', '.mp3', '.mkv')):
@@ -28,9 +28,8 @@ async def process_ffmpeg_job(job_id: str, request: FFmpegRequest, base_url: str)
             
             file_path = os.path.join(download_dir, filename)
             input_paths[alias] = file_path
-            download_tasks.append(download_file(url, file_path))
-        
-        await asyncio.gather(*download_tasks)
+            # SEQUENTIAL DOWNLOAD (Low RAM Optimization)
+            await download_file(url, file_path)
         logger.info(f"Job {job_id}: Inputs downloaded")
 
         # 2. Build Concat List (Concat Demuxer - Low RAM)
