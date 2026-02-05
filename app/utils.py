@@ -6,8 +6,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-TEMP_DOWNLOADS_DIR = "temp_downloads"
-TEMP_OUTPUTS_DIR = "temp_outputs"
+TEMP_DOWNLOADS_DIR = os.path.abspath("temp_downloads")
+TEMP_OUTPUTS_DIR = os.path.abspath("temp_outputs")
 
 # Ensure dirs exist (also handled in Dockerfile, but good for local dev)
 os.makedirs(TEMP_DOWNLOADS_DIR, exist_ok=True)
