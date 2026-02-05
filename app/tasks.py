@@ -32,26 +32,32 @@ async def process_ffmpeg_job(job_id: str, request: FFmpegRequest, base_url: str)
         await asyncio.gather(*download_tasks)
         logger.info(f"Job {job_id}: Inputs downloaded")
 
-        # 2. Build FFmpeg command
-        cmd = request.ffmpeg_command
+        # 2. Build Concat List (Concat Demuxer - Low RAM)
+        # Create a text file listing all inputs for sequential processing
+        list_path = os.path.join(download_dir, "inputs.txt")
+        sorted_inputs = sorted(input_paths.items()) # Ensure 0,1,2,3 order if keys are input_0 etc.
         
-        # Replace inputs
-        for alias, path in input_paths.items():
-            cmd = cmd.replace(f"{{{{{alias}}}}}", path)
-            cmd = cmd.replace(f"{{{{ {alias} }}}}", path)
+        async with aiofiles.open(list_path, 'w') as f:
+            for alias, path in sorted_inputs:
+                # Escape single quotes for ffmpeg concat file
+                safe_path = path.replace("'", "'\\''")
+                await f.write(f"file '{safe_path}'\n")
         
-        # Replace outputs
-        final_output_map = {} 
-        for alias, filename in request.output_files.items():
-            out_path = os.path.join(output_dir, filename)
-            cmd = cmd.replace(f"{{{{{alias}}}}}", out_path)
-            cmd = cmd.replace(f"{{{{ {alias} }}}}", out_path)
-            final_output_map[alias] = filename
-
-        # 3. Execute FFmpeg
-        # Optimized for stability (low RAM/CPU) to prevent Server OOM crashes
-        # Added: -preset ultrafast -threads 2
-        cmd = cmd.replace("-c:v libx264", "-c:v libx264 -preset ultrafast -threads 2")
+        # 3. Execute FFmpeg (Concat Mode)
+        # Using -f concat is much lighter on RAM than complex filters
+        # -safe 0: Allow absolute paths
+        # -c:v libx264 -preset ultrafast: Re-encode quickly to ensure uniform output
+        output_filename = request.output_files.get("output_0", "merged.mp4")
+        output_path = os.path.join(output_dir, output_filename)
+        
+        cmd = (
+            f"ffmpeg -f concat -safe 0 -i \"{list_path}\" "
+            f"-c:v libx264 -preset ultrafast -threads 2 "
+            f"-pix_fmt yuv420p -c:a aac -movflags +faststart -y \"{output_path}\""
+        )
+        
+        # Helper: Map the output alias to the filename we just used
+        final_output_map = {"output_0": output_filename}
         
         args = shlex.split(cmd)
         
