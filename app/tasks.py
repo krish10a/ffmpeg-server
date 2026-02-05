@@ -40,7 +40,8 @@ async def process_ffmpeg_job(job_id: str, request: FFmpegRequest, base_url: str)
         async with aiofiles.open(list_path, 'w') as f:
             for alias, path in sorted_inputs:
                 # Escape single quotes for ffmpeg concat file
-                safe_path = path.replace("'", "'\\''")
+                # Use basename to avoid path duplication
+                safe_path = os.path.basename(path).replace("'", "'\\''")
                 await f.write(f"file '{safe_path}'\n")
         
         # 3. Execute FFmpeg (Concat Mode)
