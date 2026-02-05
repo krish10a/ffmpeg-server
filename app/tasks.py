@@ -53,7 +53,7 @@ async def process_ffmpeg_job(job_id: str, request: FFmpegRequest, base_url: str)
         
         cmd = (
             f"ffmpeg -f concat -safe 0 -i \"{list_path}\" "
-            f"-c:v libx264 -preset ultrafast -threads 2 "
+            f"-c:v libx264 -preset veryfast -crf 28 -threads 2 "
             f"-pix_fmt yuv420p -c:a aac -movflags +faststart -y \"{output_path}\""
         )
         
