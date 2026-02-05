@@ -22,9 +22,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Self-Hosted FFmpeg API", lifespan=lifespan)
 
+import time
+STARTUP_TIME = time.time()
+
 @app.get("/")
 def read_root():
-    return {"message": "FFmpeg API Server is running (SQLite Persistence)."}
+    return {
+        "message": "FFmpeg API Server is running (SQLite Persistence).",
+        "startup_time": STARTUP_TIME,
+        "instance_id": os.environ.get("RAILWAY_REPLICA_ID", "local")
+    }
 
 @app.post("/v1/run-ffmpeg", response_model=JobResponse)
 async def run_ffmpeg(request: FFmpegRequest, background_tasks: BackgroundTasks, req: Request):
