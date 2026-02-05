@@ -20,7 +20,7 @@ async def process_ffmpeg_job(job_id: str, request: FFmpegRequest, base_url: str)
     try:
         # 1. Download input files
         input_paths = {}
-        # download_tasks = [] (Removed for sequential)
+        download_tasks = []
         for alias, url in request.input_files.items():
             filename = f"{alias}_{os.path.basename(url.split('?')[0])}"
             if not filename.endswith(('.mp4', '.mov', '.avi', '.mp3', '.mkv')):
@@ -28,8 +28,9 @@ async def process_ffmpeg_job(job_id: str, request: FFmpegRequest, base_url: str)
             
             file_path = os.path.join(download_dir, filename)
             input_paths[alias] = file_path
-            # SEQUENTIAL DOWNLOAD (Low RAM Optimization)
-            await download_file(url, file_path)
+            download_tasks.append(download_file(url, file_path))
+        
+        await asyncio.gather(*download_tasks)
         logger.info(f"Job {job_id}: Inputs downloaded")
 
         # 2. Build Concat List (Concat Demuxer - Low RAM)
@@ -40,8 +41,7 @@ async def process_ffmpeg_job(job_id: str, request: FFmpegRequest, base_url: str)
         async with aiofiles.open(list_path, 'w') as f:
             for alias, path in sorted_inputs:
                 # Escape single quotes for ffmpeg concat file
-                # Use basename to avoid path duplication
-                safe_path = os.path.basename(path).replace("'", "'\\''")
+                safe_path = path.replace("'", "'\\''")
                 await f.write(f"file '{safe_path}'\n")
         
         # 3. Execute FFmpeg (Concat Mode)
@@ -52,8 +52,8 @@ async def process_ffmpeg_job(job_id: str, request: FFmpegRequest, base_url: str)
         output_path = os.path.join(output_dir, output_filename)
         
         cmd = (
-            f"ffmpeg -loglevel error -fflags +genpts -f concat -safe 0 -i \"{list_path}\" "
-            f"-c:v libx264 -preset veryfast -crf 28 -r 30 -threads 2 -bufsize 3000k "
+            f"ffmpeg -fflags +genpts -f concat -safe 0 -i \"{list_path}\" "
+            f"-c:v libx264 -preset veryfast -crf 28 -r 30 -threads 2 "
             f"-pix_fmt yuv420p -c:a aac -movflags +faststart -max_interleave_delta 0 -y \"{output_path}\""
         )
         
