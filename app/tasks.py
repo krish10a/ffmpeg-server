@@ -2,6 +2,7 @@ import asyncio
 import os
 import logging
 import shlex
+import aiofiles
 from .models import FFmpegRequest
 from .utils import setup_job_dirs, download_file
 from . import db
