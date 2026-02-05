@@ -3,7 +3,15 @@ import json
 import os
 from typing import Optional, Dict
 
+
 DB_PATH = "/code/jobs.db"
+# Check for common persistent volume paths
+for path in ["/data", "/railway/data", "/app/data"]:
+    if os.path.exists(path):
+        DB_PATH = os.path.join(path, "jobs.db")
+        print(f"Using persistent DB at: {DB_PATH}")
+        break
+
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
